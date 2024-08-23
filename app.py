@@ -5,9 +5,8 @@ import requests
 from requests.exceptions import RequestException
 import time
 
-
 def fetch_poster(movie_id, retries=3, delay=5):
-    url = 'https://api.themoviedb.org/3/movie/{}?api_key=1f54a24f1dd67b09e2427633faefd8d2&language=en-US'.format(movie_id)
+    url = f'https://api.themoviedb.org/3/movie/{movie_id}?api_key=1f54a24f1dd67b09e2427633faefd8d2&language=en-US'
     for attempt in range(retries):
         try:
             response = requests.get(url)
@@ -32,7 +31,7 @@ def fetch_video_url(movie_id):
         if data['results']:
             # Get the first trailer or video result
             video = next((vid for vid in data['results'] if vid['type'] == 'Trailer'), data['results'][0])
-            return f"https://www.youtube.com/watch?v={video['key']}"
+            return f"https://www.youtube.com/embed/{video['key']}?autoplay=1"  # Use embed URL for autoplay
         else:
             return None
     except RequestException as e:
@@ -70,12 +69,21 @@ selected_movie_name = st.selectbox(
 if st.button('Recommend'):
     names, posters, urls = recommend(selected_movie_name)
 
-    # Create expandable sections for each recommendation
+    # Create tabs for each recommendation
+    tabs = st.tabs([names[i] for i in range(5)])
+
     for i in range(5):
-        with st.expander(names[i]):
-            st.image(posters[i], use_column_width=True)
-            st.text(names[i])
-            if urls[i]:
-                st.video(urls[i])  # Embed the YouTube trailer
-            else:
-                st.text("Trailer not available")
+        with tabs[i]:
+            # Create a horizontal layout with columns for the poster and video
+            col1, col2 = st.columns([1, 2])  # Adjust column widths as needed
+
+            with col1:
+                # Display the poster image without explicit width and height
+                st.image(posters[i],width="90%", use_column_width=True)
+
+            with col2:
+                # Display the video iframe
+                if urls[i]:
+                    st.markdown(f'<iframe width="100%" height="337" src="{urls[i]}" frameborder="0" allowfullscreen></iframe>', unsafe_allow_html=True)
+                else:
+                    st.text("Trailer not available")
